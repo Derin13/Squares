@@ -1,0 +1,282 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
+using System.Linq;
+using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace square_puzzle
+{
+    internal class Program
+    {
+
+        static int[,] NormalizePiece(int squarecount, int[,] coordinates, int[,] area)
+        {
+            int minC = 5;
+            int minR = 5;
+            int[,] Normalized = new int[squarecount,2];
+            for (int i = 0; i < squarecount; i++)
+            {
+                if (coordinates[i, 1] < minC)
+                    minC = coordinates[i, 1];
+            }
+
+            for (int i = 0; i < squarecount; i++)
+            {
+                if (coordinates[i, 0] < minR)
+                    minR = coordinates[i, 0];
+
+            }
+            for (int i = 0; i < squarecount; i++) // shift edilmis koordinatlar kaydedildi
+            {
+                Normalized[i, 0] = coordinates[i, 0] - minR;
+            }
+            for (int i = 0; i < squarecount; i++)
+            {
+                Normalized[i, 1] = coordinates[i, 1] - minC;
+            }
+            Array.Clear(area,0,area.Length); // Areayı temizleyip yeni koordinatlar 1 yapıldı
+            for (int i = 0; i < Normalized.GetLength(0); i++)
+            {
+                int r = Normalized[i, 0];
+                int c = Normalized[i, 1];
+                if (r >= 0 && r < 5 && c >= 0 && c < 5)
+                {
+                    area[Normalized[i, 0], Normalized[i, 1]] = 1;
+                }
+            }
+              return Normalized;
+        }
+
+        static int[,] ReversePiece(int squarecount, int[,] Normalized)
+        {
+            int[,] Reversed = new int[squarecount, 2];
+            for (int i = 0; i < squarecount; i++)
+            {
+                Reversed[i, 0] = Normalized[i, 0];
+                Reversed[i, 1] = 4 - Normalized[i, 1];
+            }
+
+            return Reversed;
+        }
+
+        static int[,] RotatePiece(int squarecount, int[,] Normalized)
+        {
+            int[,] Rotate = new int[squarecount, 2];
+            for (int i = 0; i < squarecount; i++)
+            {
+                Rotate[i, 0] = Normalized[i, 1];
+                Rotate[i, 1] = 4 - Normalized[i, 0];
+
+            }
+
+            return Rotate;
+        }
+
+        static int[,] PrintPiece(string harf,int[,] area)
+        {
+            
+            for (int i = 0; i < 5; i++)
+            {
+                for (int j = 0; j < 5; j++)
+                {
+                    if (area[i, j] == 1)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        Console.Write(harf+ " ");
+                        Console.ResetColor();
+                    }
+                    else
+                        Console.Write(". ");
+                }
+                Console.WriteLine();
+            }
+            return area;
+
+        }
+
+        static void Main(string[] args)
+        {
+            Random random = new Random();
+            Console.CursorVisible = false;
+
+            {
+               
+                int r1, c1 = 0; //row and column for first empty space
+                string[] harfler = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T" };
+
+                int count = 0;
+                int attempt = 0;
+                int minR = 0;
+                int minC = 0;
+                int sum = 0;
+                Console.WriteLine("Enter numbers between 2-12 with space.");
+                string input = Console.ReadLine();
+                string[] squares = input.Split(new[] { ' ' });
+                int piecenumber = squares.Length;
+                while (piecenumber > 20)
+                {
+
+                    Console.WriteLine("Enter a max of 20 numbers.");
+                    input = Console.ReadLine();
+                    squares = input.Split(new[] { ' ' });
+                    piecenumber = squares.Length;
+                }
+
+                
+                bool invalid = false;
+                for (int i = 0; i < squares.Length; i++)
+                {
+                    int value = Convert.ToInt32(squares[i]);
+                    if(value < 2 || value > 12)
+                    {
+                        invalid = true;
+                    }
+                }
+                while (invalid)
+                {
+                    Console.WriteLine("Invalid! Enter numbers between 2-12 with space.");
+                    input = Console.ReadLine();
+                    squares = input.Split(new[] { ' ' });
+                    piecenumber = squares.Length;
+                    invalid = false;
+                    for (int i = 0; i < squares.Length; i++)
+                    {
+                        int value = Convert.ToInt32(squares[i]);
+                        if (value < 2 || value > 12)
+                        {
+                            invalid = true;
+                        }
+                    }
+                }
+
+                for (int i = 0; i < squares.Length; i++)
+                {
+                    sum += Convert.ToInt32(squares[i]);
+                }
+                while (sum > 160)
+                {
+                    
+                    Console.WriteLine("Enter a max of 160 squares.");
+                    input = Console.ReadLine();
+                    squares = input.Split(new[] { ' ' });
+                    piecenumber = squares.Length;
+                    sum = 0;
+                    for (int i = 0; i < squares.Length; i++)
+                    {
+                        sum += Convert.ToInt32(squares[i]);
+                    }
+                }
+
+                for (int k = 0; k < piecenumber; k++)
+                {
+
+                    int squarecount = Convert.ToInt32(squares[k]);
+
+                    int[,] area = new int[5, 5];
+                    count = 0;
+                    attempt = 0;
+                    //1.yer
+                    c1 = random.Next(0, 5);
+                    r1 = random.Next(0, 5);
+                    area[r1, c1] = 1; //ilk boşluk, 1 ile gösterildi 
+                    count++;
+
+
+                    int[,] coordinates = new int[squarecount, 2];
+                    coordinates[0, 0] = r1;
+                    coordinates[0, 1] = c1;
+                    while (squarecount > count)
+                    {
+                        attempt++;
+                        int rnext = random.Next(0, 5);
+                        int cnext = random.Next(0, 5);
+                        if (area[rnext, cnext] == 0)   // etrafında dolu var mı 
+                        {
+
+                            bool full = false;
+                            if (rnext > 0 && area[rnext - 1, cnext] == 1) full = true;  // 0dan basladıgı icin buyuktur 0 dedik, yukarı kontrolu
+                            else if (cnext > 0 && area[rnext, cnext - 1] == 1) full = true;
+                            else if (rnext < 4 && area[rnext + 1, cnext] == 1) full = true;
+                            else if (cnext < 4 && area[rnext, cnext + 1] == 1) full = true;
+                            if (full == true)
+                            {
+                                area[rnext, cnext] = 1;
+                                coordinates[count, 0] = rnext;
+                                coordinates[count, 1] = cnext;
+                                count++;
+                            }
+                        }
+                       
+                    }
+
+                  
+                    Console.WriteLine("Piece Size : " + squarecount);
+                    Console.WriteLine("Attempts : " + attempt);
+                    Console.WriteLine("_______________________");
+                    int[,] area1 = new int[5, 5];
+                    int[,] Normalized = NormalizePiece(squarecount, coordinates, area1);
+                    PrintPiece(harfler[k],area1);
+
+                    int[,] Rotated1 = RotatePiece(squarecount, Normalized);
+                    int[,] area2 = new int[5, 5];
+                    int[,] NormalizedRotate1 = NormalizePiece(squarecount, Rotated1, area2);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area2);
+
+                    int[,] Rotated2 = RotatePiece(squarecount, Rotated1);
+                    int[,] area3 = new int[5, 5];
+                    int[,] NormalizedRotate2 = NormalizePiece(squarecount, Rotated2, area3);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area3);
+
+                    int[,] Rotated3 = RotatePiece(squarecount, Rotated2);
+                    int[,] area4 = new int[5, 5];
+                    int[,] NormalizedRotate3 = NormalizePiece(squarecount, Rotated3, area4);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area4);
+
+                    int[,] Reversed1 = ReversePiece(squarecount, Normalized);
+                    int[,] area5 = new int[5, 5];
+                    int[,] NormalizedReverse1 = NormalizePiece(squarecount, Reversed1, area5);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area5);
+
+                    int[,] Reversed2 = ReversePiece(squarecount, NormalizedRotate1);
+                    int[,] area6 = new int[5, 5];
+                    int[,] NormalizedReverse2 = NormalizePiece(squarecount, Reversed2, area6);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area6);
+
+                    int[,] Reversed3 = ReversePiece(squarecount, NormalizedRotate2);
+                    int[,] area7 = new int[5, 5];
+                    int[,] NormalizedReverse3 = NormalizePiece(squarecount, Reversed3, area7);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area7);
+
+                    int[,] Reversed4 = ReversePiece(squarecount, NormalizedRotate3);
+                    int[,] area8 = new int[5, 5];
+                    int[,] NormalizedReverse4 = NormalizePiece(squarecount, Reversed4, area8);
+                    Console.WriteLine("_______________________");
+                    PrintPiece(harfler[k], area8);
+                    
+
+                }
+
+                #region game screen
+
+                //Console.WriteLine("Round : " + round);
+                //Console.WriteLine("Pieces : " + pieces);
+                //Console.WriteLine("Min. Regurality: ");
+                //Console.WriteLine("Max. Regurality : ");
+
+                #endregion
+
+            }
+
+
+        }
+    }
+}

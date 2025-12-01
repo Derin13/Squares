@@ -11,7 +11,7 @@ namespace square_puzzle
 {
     internal class Program
     {
-
+aaaaaaaaaaaa
         static int[,] NormalizePiece(int squarecount, int[,] coordinates, int[,] area)
         {
             int minC = 5;
